@@ -30,22 +30,21 @@ function Details() {
       .then((res) => {
         setItem(res.data);
         console.log(res.data);
+        
+        // Load image after getting item data
+        if (res.data.image) {
+          setImage(`${api}/files/${res.data.image}`);
+        } else {
+          setImage(noimg);
+        }
         setLoading(false);
       })
       .catch((error) => {
         console.log(error);
+        setImage(noimg);
         setLoading(false);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  axios.get(`${api}/files/${item.image}`).then((res) => {
-    console.log(res);
-    setImage(`${api}/files/${item.image}`)
-  }).catch((error) => {
-        console.log(error);
-      setImage(noimg);
-    });
+  }, [id]);
 
   return (
     <main id="detailspage">
@@ -63,7 +62,7 @@ function Details() {
         ) : (
           <div className="details-card">
             <div className="img-container">
-              <img src={image} alt="" />
+              <img src={image} alt={item.title || "Item image"} />
             </div>
 
             <div className="action-container">
@@ -80,16 +79,7 @@ function Details() {
               <p>{item.name}</p>
             </div>
 
-            {/* <div className="details-container">
-            <p>Email</p>
-            <p>arjuncvinod@mail.com</p>
-          </div>
-          <div className="details-container">
-            <p>Phone</p>
-            <p>8494865475</p>
-          </div> */}
             <div className="details-container desc">
-              {/* <p>Description</p> */}
               <p>{item.description}</p>
             </div>
           </div>

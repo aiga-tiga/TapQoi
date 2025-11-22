@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lost-backend-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lost-backend
+  template:
+    metadata:
+      labels:
+        app: lost-backend
+    spec:
+      containers:
+        - name: lost-backend
+          image: aigerim1/lost-backend:v1
+          ports:
+            - containerPort: 8000

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lost-frontend-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lost-frontend
+  template:
+    metadata:
+      labels:
+        app: lost-frontend
+    spec:
+      containers:
+        - name: lost-frontend
+          image: aigerim1/lost-frontend:v1
+          ports:
+            - containerPort: 80
