@@ -30,6 +30,9 @@ function Navbar() {
         <li>
           <a href="/post">Post item</a>
         </li>
+         <li>
+          <a href="/map">Map</a>
+        </li>
         <li>
           <a href="/#about">About us</a>
         </li>

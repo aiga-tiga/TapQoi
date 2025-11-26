@@ -17,6 +17,9 @@ function Find() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  const [geoLoading, setGeoLoading] = useState(false); // NEW
+
   const location = useLocation();
 
   const override: CSSProperties = {
@@ -28,37 +31,43 @@ function Find() {
     transform: "translate(-50%,-50%)"
   };
 
+  // Init animations
   useEffect(() => {
     AOS.init({ duration: 750 });
   }, []);
 
-useEffect(() => {
-  if (location.state?.searchQuery) {
-    const q = location.state.searchQuery;
-    setSearchQuery(q);
-    searchItems(q);
-  } else {
-    fetchAllItems();
-  }
-}, [location.state]);
+  // Load items based on forwarded search OR load all
+  useEffect(() => {
+    if (location.state?.searchQuery) {
+      const q = location.state.searchQuery;
+      setSearchQuery(q);
+      searchItems(q);
+    } else {
+      fetchAllItems();
+    }
+  }, [location.state]);
 
-const searchItems = async (query) => {
-  setLoading(true);
-  setSearchLoading(true);
-  try {
-    const res = await axios.get(`${api}/search?q=${encodeURIComponent(query)}`);
-    setFilteredItems(res.data.data || []);
-    setHasSearched(true);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-    setSearchLoading(false);
-  }
-};
+  // -------------------------------
+  // SEARCH ITEMS
+  // -------------------------------
+  const searchItems = async (query) => {
+    setLoading(true);
+    setSearchLoading(true);
+    try {
+      const res = await axios.get(`${api}/search?q=${encodeURIComponent(query)}`);
+      setFilteredItems(res.data.data || []);
+      setHasSearched(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setSearchLoading(false);
+    }
+  };
 
-
-
+  // -------------------------------
+  // FETCH ALL ITEMS
+  // -------------------------------
   const fetchAllItems = () => {
     setLoading(true);
     axios
@@ -76,20 +85,28 @@ const searchItems = async (query) => {
       });
   };
 
+  // -------------------------------
+  // HANDLE SEARCH
+  // -------------------------------
   const handleSearch = async (e) => {
-    if ((e.key === 'Enter' || e.type === 'click') && searchQuery.trim()) {
+    if ((e.key === "Enter" || e.type === "click") && searchQuery.trim()) {
       setSearchLoading(true);
       try {
-        const response = await axios.get(`${api}/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        const response = await axios.get(
+          `${api}/search?q=${encodeURIComponent(searchQuery.trim())}`
+        );
         const searchResults = response.data.data || [];
         setFilteredItems(searchResults);
         setHasSearched(true);
       } catch (error) {
-        console.error('Search error:', error);
-        // Fallback to client-side filtering if search endpoint fails
-        const filtered = items.filter(item =>
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        console.error("Search error:", error);
+
+        // Local fallback filter
+        const filtered = items.filter(
+          (item) =>
+            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.description &&
+              item.description.toLowerCase().includes(searchQuery.toLowerCase()))
         );
         setFilteredItems(filtered);
         setHasSearched(true);
@@ -97,7 +114,6 @@ const searchItems = async (query) => {
         setSearchLoading(false);
       }
     } else if (!searchQuery.trim()) {
-      // If search is empty, show all items
       setFilteredItems([...items].reverse());
       setHasSearched(false);
     }
@@ -109,33 +125,85 @@ const searchItems = async (query) => {
     setHasSearched(false);
   };
 
+  // -------------------------------
+  // 🔥 NEW: Fetch items near user
+  // -------------------------------
+  const fetchNearbyItems = async (lat, lng, radius = 5) => {
+    try {
+      setGeoLoading(true);
+      const res = await axios.get(
+        `${api}/items/near?lat=${lat}&lng=${lng}&radius=${radius}`
+      );
+      setFilteredItems(res.data.data || []);
+      setHasSearched(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
+  // -------------------------------
+  // 🔥 NEW: Handle "Find Near Me" button
+  // -------------------------------
+  const handleFindNearby = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setGeoLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetchNearbyItems(latitude, longitude, 5);
+      },
+      (err) => {
+        console.error(err);
+        alert("Unable to get your location.");
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  // -------------------------------
+  // RENDER
+  // -------------------------------
   return (
     <main id="findpage">
       <Navbar />
+
       <section>
         <h1 className="lfh1">
-          {hasSearched ? `Search Results for "${searchQuery}"` : "Lost and Found Items"}
+          {hasSearched
+            ? `Search Results for "${searchQuery}"`
+            : "Lost and Found Items"}
         </h1>
-        
+
         {/* Search Bar */}
         <div className="search-container-find">
           <div className="search-input-wrapper">
             <SearchIcon className="search-icon" />
+
             <input
               type="text"
               placeholder="Search for items by title or description..."
               className="search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+              onKeyPress={(e) => e.key === "Enter" && handleSearch(e)}
               disabled={searchLoading}
             />
+
             {searchQuery && (
               <button className="clear-search" onClick={clearSearch}>
                 <ClearIcon />
               </button>
             )}
-            <button 
+
+            <button
               className="search-btn"
               onClick={handleSearch}
               disabled={searchLoading || !searchQuery.trim()}
@@ -145,26 +213,47 @@ const searchItems = async (query) => {
           </div>
         </div>
 
+        {/* 🔥 NEW: Near Me Button */}
+        <div className="nearby-container" style={{ textAlign: "center", marginTop: "20px" }}>
+          <button
+            className="nearby-btn"
+            onClick={handleFindNearby}
+            disabled={geoLoading}
+            style={{
+              padding: "20px 30px",
+              background: "#fdf004",
+              borderRadius: "6px",
+              border: "none", 
+              cursor: "pointer",
+              fontWeight: "600"
+            }}
+          >
+            {geoLoading ? "Finding Nearby..." : "Find Items Near Me"}
+          </button>
+        </div>
+
         {/* Results Info */}
         {hasSearched && (
-          <div className="search-results-info">
-            <p>Found {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</p>
+          <div className="search-results-info" style={{ textAlign: "center", marginTop: "20px" }}>
+            <p>
+              Found {filteredItems.length} item
+              {filteredItems.length !== 1 ? "s" : ""}
+            </p>
             <button className="clear-results-btn" onClick={clearSearch}>
               Show all items
             </button>
           </div>
         )}
 
-        <div className="item-container">
+        <div className="item-container" style={{ textAlign: "center", marginTop: "20px" }}>
           <HashLoader
             color="#fdf004"
             loading={loading}
             cssOverride={override}
             size={50}
             aria-label="Loading Spinner"
-            data-testid="loader" 
           />
-          
+
           {!loading && filteredItems.length === 0 && hasSearched && (
             <div className="no-results">
               <h3>No items found for "{searchQuery}"</h3>
@@ -182,17 +271,15 @@ const searchItems = async (query) => {
             </div>
           )}
 
-          {filteredItems.map((findItem, index) => {
-            return (
-              <Itemcard
-                key={findItem._id}
-                id={findItem._id}
-                title={findItem.title}
-                description={findItem.description}
-                image={findItem.image}
-              />
-            );
-          })}
+          {filteredItems.map((findItem) => (
+            <Itemcard
+              key={findItem._id}
+              id={findItem._id}
+              title={findItem.title}
+              description={findItem.description}
+              image={findItem.image}
+            />
+          ))}
 
           <div className="extraItem"></div>
           <div className="extraItem"></div>

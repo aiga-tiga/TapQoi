@@ -155,3 +155,31 @@ app.get("/search", async (req, res) => {
     });
   }
 });
+
+
+
+
+router.get("/items/near", async (req, res) => {
+  try {
+    const { lat, lng, radius = 5 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: "Missing coordinates" });
+    }
+
+    const items = await Item.find({
+      location: {
+        $geoWithin: {
+          $centerSphere: [
+            [parseFloat(lng), parseFloat(lat)],
+            parseFloat(radius) / 6378.1, // Earth radius in km
+          ],
+        },
+      },
+    });
+
+    res.json({ success: true, data: items });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});

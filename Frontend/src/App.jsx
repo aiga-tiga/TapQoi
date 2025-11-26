@@ -4,6 +4,8 @@ import Find from "./pages/Find"
 import Post from "./pages/Post";
 import Details from "./pages/Details";
 import "./App.css"
+import MapPage from "./pages/Map";
+
 
 function App() {
    return (
@@ -12,6 +14,8 @@ function App() {
       <Route path='/find' element={<Find />}  />
       <Route path='/post' element={<Post />}  />
       <Route path='/find/details/:id' element={<Details />}  />
+      <Route path="/map" element={<MapPage />} />
+
     </Routes>
       )
 }
