@@ -117,3 +117,41 @@ mongoose
   .catch((error) => {
     console.log(error);
   });
+
+
+  // =============================== SEARCH ====================================
+
+app.get("/search", async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    // Search in title and description fields (case-insensitive)
+    const items = await Item.find({
+      $or: [
+        { title: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } }
+      ]
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: items.length,
+      data: items,
+      searchQuery: q
+    });
+
+  } catch (error) {
+    console.log('Search error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error during search'
+    });
+  }
+});
